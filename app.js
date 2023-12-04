@@ -3,13 +3,13 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');  // Import the jsonwebtoken library
 const { Sequelize, DataTypes } = require('sequelize');
 
 const app = express();
 const port = 3000;
 
 app.use(cors());
-
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static('public'));
@@ -87,7 +87,6 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-
 // Your existing login route
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
@@ -96,21 +95,22 @@ app.post('/login', async (req, res) => {
     const existingUser = await User.findOne({ where: { email } });
 
     if (!existingUser) {
-        return res.status(400).json({ message: 'User does not exist' });
+        return res.status(404).json({ message: 'User not found, please register using the Sign Up option below.' });
     }
 
     // Check password
     const passwordMatch = await bcrypt.compare(password, existingUser.password);
 
     if (!passwordMatch) {
-        return res.status(401).json({ message: 'Invalid password' });
+        return res.status(401).json({ message: 'User not authorized, Wrong Password.' });
     }
 
-    // Successful login
-    res.json({ message: 'Login successful' });
+    // If password is correct, create a JWT
+    const token = jwt.sign({ userId: existingUser.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Send the JWT to the frontend
+    res.json({ message: 'Login successful', token });
 });
-
-
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
