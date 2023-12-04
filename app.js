@@ -42,6 +42,26 @@ const User = sequelize.define('User', {
     },
 });
 
+// Define Message model
+const Message = sequelize.define('Message', {
+    userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
+    message: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    createdAt: {
+        type: DataTypes.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+    },
+});
+
+// Define the association between User and Message
+User.hasMany(Message); // A user can have many messages
+Message.belongsTo(User); // A message belongs to a user
+
 // Synchronize the model with the database
 sequelize.sync().then(() => {
     console.log('Database and table synced');
@@ -131,6 +151,26 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(__dirname + '/views/dashboard.html');
 });
 
+// Add this route to your app.js
+// Add debug console.log
+app.get('/api/messages', authenticateToken, async (req, res) => {
+    try {
+        console.log('Request received at /api/messages'); // Add this line for debugging
+        // Query the database to retrieve chat messages for all users
+        const messages = await Message.findAll({
+            order: [['createdAt', 'ASC']], // Order messages by timestamp
+            include: User, // Include user information in the result
+        });
+
+        res.json(messages);
+    } catch (error) {
+        console.error('Error retrieving messages:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
+
+
 // Dashboard API route
 app.get('/dashboard-data', authenticateToken, (req, res) => {
     // Here you would gather the data needed for the dashboard and send it as JSON
@@ -167,7 +207,14 @@ io.on('connection', (socket) => {
                 onlineUsers.set(socket.id, user.name);
                 io.emit('user list', Array.from(onlineUsers.values()));
                 socket.on('chat message', (msg) => {
-                    io.emit('chat message', { user: user.name, text: msg });
+                    // Store the chat message in the database
+                    Message.create({ userId: user.id, message: msg })
+                        .then(() => {
+                            io.emit('chat message', { user: user.name, text: msg });
+                        })
+                        .catch((error) => {
+                            console.error('Error creating message:', error);
+                        });
                 });
             }
         });
@@ -179,6 +226,7 @@ io.on('connection', (socket) => {
         console.log('user disconnected');
     });
 });
+
 
 
 server.listen(port, () => {

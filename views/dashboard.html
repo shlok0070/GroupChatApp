@@ -22,6 +22,7 @@
         </section>
     </div>
 
+    <!-- Add the code to load chat messages from the database -->
     <script>
         const token = localStorage.getItem('token');
         if (!token) {
@@ -29,6 +30,36 @@
             window.location.href = '/login';
         } else {
             const socket = io({ query: { token: token } });
+
+            // Function to load chat messages from the API
+            async function loadChatMessages() {
+                try {
+                    const response = await fetch('/api/messages', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        },
+                    });
+                    if (response.ok) {
+                        const messages = await response.json();
+                        const chatMessages = document.getElementById('chat-messages');
+                        messages.forEach((msg) => {
+                            const item = document.createElement('li');
+                            const userName = msg.User ? msg.User.name : 'Unknown User';
+                            item.textContent = `${userName}: ${msg.message}`;
+                            chatMessages.appendChild(item);
+                        });
+                    } else {
+                        console.error('Error loading chat messages:', response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error loading chat messages:', error);
+                }
+            }
+
+            // Load chat messages when the page is loaded
+            window.addEventListener('load', () => {
+                loadChatMessages();
+            });
 
             socket.on('chat message', function(data) {
                 const item = document.createElement('li');
