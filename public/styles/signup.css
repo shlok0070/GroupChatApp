@@ -1,0 +1,71 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    background-color: #f4f4f4;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 10px 10px 20px #d9d9d9, -10px -10px 20px #ffffff;
+    width: 400px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+h2 {
+    text-align: center;
+    color: #007BFF;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+label {
+    color: #555;
+    font-size: 14px;
+    margin-top: 15px;
+}
+
+input {
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    border: none;
+    border-radius: 8px;
+    background-color: #f4f4f4;
+    box-shadow: inset 6px 6px 12px #d9d9d9, inset -6px -6px 12px #ffffff;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input:focus {
+    outline: none;
+    background-color: #e6e6e6;
+    box-shadow: inset 4px 4px 8px #d9d9d9, inset -4px -4px 8px #ffffff;
+}
+
+button {
+    background-color: #007BFF;
+    color: #fff;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#error, #success {
+    text-align: center;
+    margin-top: 10px;
+}

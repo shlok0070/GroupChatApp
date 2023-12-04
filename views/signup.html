@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="container">
-        <form action="/signup" method="post">
+        <form id="signupForm" onsubmit="signup(event)">
             <h2>Sign Up</h2>
             <label for="name">Name:</label>
             <input type="text" id="name" name="name" required>
@@ -24,6 +24,39 @@
 
             <button type="submit">Sign Up</button>
         </form>
+        <p id="error" style="color: red;"></p>
+        <p id="success" style="color: green;"></p>
     </div>
+
+    <script>
+        async function signup(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+
+            const response = await fetch('/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, email, phone, password }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Successful signup
+                document.getElementById('success').textContent = result.message;
+                document.getElementById('error').textContent = ''; // Clear any previous error message
+            } else {
+                // Error in signup
+                document.getElementById('error').textContent = result.message;
+                document.getElementById('success').textContent = ''; // Clear any previous success message
+            }
+        }
+    </script>
 </body>
 </html>
