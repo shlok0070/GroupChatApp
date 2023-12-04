@@ -1,11 +1,14 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const { Sequelize, DataTypes } = require('sequelize');
 
 const app = express();
 const port = 3000;
+
+app.use(cors());
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -46,9 +49,17 @@ sequelize.sync().then(() => {
     console.error('Error syncing database:', err);
 });
 
-// Your existing signup route
+// Existing Routes
 
 app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/views/login.html');
+});
+
+app.get('/login', (req, res) => {
+    res.sendFile(__dirname + '/views/login.html');
+});
+
+app.get('/signup', (req, res) => {
     res.sendFile(__dirname + '/views/signup.html');
 });
 
@@ -75,6 +86,31 @@ app.post('/signup', async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error' });
     }
 });
+
+
+// Your existing login route
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    // Check if user exists
+    const existingUser = await User.findOne({ where: { email } });
+
+    if (!existingUser) {
+        return res.status(400).json({ message: 'User does not exist' });
+    }
+
+    // Check password
+    const passwordMatch = await bcrypt.compare(password, existingUser.password);
+
+    if (!passwordMatch) {
+        return res.status(401).json({ message: 'Invalid password' });
+    }
+
+    // Successful login
+    res.json({ message: 'Login successful' });
+});
+
+
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);

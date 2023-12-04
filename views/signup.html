@@ -24,8 +24,10 @@
 
             <button type="submit">Sign Up</button>
         </form>
-        <p id="error" style="color: red;"></p>
-        <p id="success" style="color: green;"></p>
+
+        <p style="text-align: center; margin-top: 10px;">
+            Already have an account? <a href="/login">Click here to login</a>
+        </p>
     </div>
 
     <script>
@@ -49,12 +51,10 @@
 
             if (response.ok) {
                 // Successful signup
-                document.getElementById('success').textContent = result.message;
-                document.getElementById('error').textContent = ''; // Clear any previous error message
+                alert('Successfully signed up');
             } else {
                 // Error in signup
-                document.getElementById('error').textContent = result.message;
-                document.getElementById('success').textContent = ''; // Clear any previous success message
+                alert('User already exists. Please login.');
             }
         }
     </script>
