@@ -32,29 +32,43 @@
             const socket = io({ query: { token: token } });
 
             // Function to load chat messages from the API
-            async function loadChatMessages() {
-                try {
-                    const response = await fetch('/api/messages', {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                        },
-                    });
-                    if (response.ok) {
-                        const messages = await response.json();
-                        const chatMessages = document.getElementById('chat-messages');
-                        messages.forEach((msg) => {
-                            const item = document.createElement('li');
-                            const userName = msg.User ? msg.User.name : 'Unknown User';
-                            item.textContent = `${userName}: ${msg.message}`;
-                            chatMessages.appendChild(item);
+            // Function to load chat messages from the API
+                async function loadChatMessages() {
+                    try {
+                        const response = await fetch('/api/messages', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                            },
                         });
-                    } else {
-                        console.error('Error loading chat messages:', response.statusText);
+                        if (response.ok) {
+                            const messages = await response.json();
+                            const chatMessages = document.getElementById('chat-messages');
+                            messages.forEach((msg) => {
+                                const item = document.createElement('li');
+                                const userName = msg.User ? msg.User.name : 'Unknown User';
+
+                                // Create a <span> element to style the user's name and message separately
+                                const messageSpan = document.createElement('span');
+                                const userNameSpan = document.createElement('span');
+                                userNameSpan.textContent = userName + ': ';
+                                userNameSpan.style.fontWeight = 'bold'; // Set user name to bold
+                                messageSpan.textContent = msg.message;
+                                // messageSpan.style.fontFamily = 'Comic Sans MS'; // Set message font
+
+                                // Append both <span> elements to the <li>
+                                item.appendChild(userNameSpan);
+                                item.appendChild(messageSpan);
+
+                                chatMessages.appendChild(item);
+                            });
+                        } else {
+                            console.error('Error loading chat messages:', response.statusText);
+                        }
+                    } catch (error) {
+                        console.error('Error loading chat messages:', error);
                     }
-                } catch (error) {
-                    console.error('Error loading chat messages:', error);
                 }
-            }
+
 
             // Load chat messages when the page is loaded
             window.addEventListener('load', () => {
@@ -62,11 +76,20 @@
             });
 
             socket.on('chat message', function(data) {
-                const item = document.createElement('li');
-                item.textContent = `${data.user}: ${data.text}`;
-                document.getElementById('chat-messages').appendChild(item);
-                window.scrollTo(0, document.body.scrollHeight);
-            });
+            const chatMessages = document.getElementById('chat-messages');
+            const item = document.createElement('li');
+            
+            // Check if the message is from the current user (You) and apply bold style accordingly
+            if (data.user === 'You') {
+                item.innerHTML = `<span style="font-weight: bold;">${data.user}:</span> ${data.text}`;
+            } else {
+                item.innerHTML = `<span style="font-weight: bold;">${data.user}:</span> ${data.text}`;
+            }
+
+            chatMessages.appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+
 
             socket.on('user list', function(users) {
                 const userList = document.getElementById('users');
