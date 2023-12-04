@@ -49,6 +49,19 @@ sequelize.sync().then(() => {
     console.error('Error syncing database:', err);
 });
 
+// Authentication Middleware
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token == null) return res.sendStatus(401);
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403);
+        req.user = user;
+        next();
+    });
+}
+
 // Existing Routes
 
 app.get('/', (req, res) => {
@@ -63,6 +76,7 @@ app.get('/signup', (req, res) => {
     res.sendFile(__dirname + '/views/signup.html');
 });
 
+// Signup route
 app.post('/signup', async (req, res) => {
     const { name, email, phone, password } = req.body;
 
@@ -87,7 +101,7 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-// Your existing login route
+// Login route
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
@@ -102,7 +116,7 @@ app.post('/login', async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, existingUser.password);
 
     if (!passwordMatch) {
-        return res.status(401).json({ message: 'User not authorized, Wrong Password.' });
+        return res.status(401).json({ message: 'Incorrect Password.' });
     }
 
     // If password is correct, create a JWT
@@ -112,6 +126,61 @@ app.post('/login', async (req, res) => {
     res.json({ message: 'Login successful', token });
 });
 
-app.listen(port, () => {
+// Dashboard route
+app.get('/dashboard', (req, res) => {
+    res.sendFile(__dirname + '/views/dashboard.html');
+});
+
+// Dashboard API route
+app.get('/dashboard-data', authenticateToken, (req, res) => {
+    // Here you would gather the data needed for the dashboard and send it as JSON
+    // For example, you could send the user's name, email, etc.
+    // For now, let's just send a success message
+    res.json({ message: 'You are authenticated', user: req.user });
+});
+
+// Setting up the server with socket.io
+const server = require('http').Server(app);
+const io = require('socket.io')(server);
+
+// Authenticate WebSocket connections with JWT
+io.use((socket, next) => {
+    const token = socket.handshake.query.token;
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return next(new Error('Authentication error'));
+        }
+        socket.decoded = decoded; // If needed, you can access the decoded data in your connection handler
+        next();
+    });
+});
+
+// Users connected to the chat
+const onlineUsers = new Map();
+
+io.on('connection', (socket) => {
+    console.log('a user connected');
+    const decoded = socket.decoded;
+    if (decoded && decoded.userId) {
+        User.findByPk(decoded.userId).then(user => {
+            if (user) {
+                onlineUsers.set(socket.id, user.name);
+                io.emit('user list', Array.from(onlineUsers.values()));
+                socket.on('chat message', (msg) => {
+                    io.emit('chat message', { user: user.name, text: msg });
+                });
+            }
+        });
+    }
+
+    socket.on('disconnect', () => {
+        onlineUsers.delete(socket.id);
+        io.emit('user list', Array.from(onlineUsers.values()));
+        console.log('user disconnected');
+    });
+});
+
+
+server.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });

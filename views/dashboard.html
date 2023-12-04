@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Chat App</title>
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="chat-container">
+        <aside class="online-users">
+            <h3>Online Users</h3>
+            <ul id="users"></ul>
+        </aside>
+        <section class="chat-window">
+            <ul id="chat-messages"></ul>
+            <form id="chatForm">
+                <input id="message-input" autocomplete="off" placeholder="Type a message...">
+                <button type="submit">Send</button>
+            </form>
+        </section>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('You are not logged in. Please log in to continue.');
+            window.location.href = '/login';
+        } else {
+            const socket = io({ query: { token: token } });
+
+            socket.on('chat message', function(data) {
+                const item = document.createElement('li');
+                item.textContent = `${data.user}: ${data.text}`;
+                document.getElementById('chat-messages').appendChild(item);
+                window.scrollTo(0, document.body.scrollHeight);
+            });
+
+            socket.on('user list', function(users) {
+                const userList = document.getElementById('users');
+                userList.innerHTML = '';
+                users.forEach(function(user) {
+                    const item = document.createElement('li');
+                    item.textContent = user;
+                    userList.appendChild(item);
+                });
+            });
+
+            document.getElementById('chatForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const message = document.getElementById('message-input').value;
+                if (message) {
+                    socket.emit('chat message', message);
+                    document.getElementById('message-input').value = '';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

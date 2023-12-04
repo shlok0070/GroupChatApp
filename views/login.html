@@ -25,10 +25,10 @@
     <script>
         async function login(event) {
             event.preventDefault();
-
+    
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-
+    
             const response = await fetch('/login', {
                 method: 'POST',
                 headers: {
@@ -36,18 +36,21 @@
                 },
                 body: JSON.stringify({ email, password }),
             });
-
+    
             const result = await response.json();
-
+    
+            // In your login script after successful login
             if (response.ok) {
-                // Successful login
-                alert('Successfully logged in');
-                window.location.href = '/dashboard'; // Redirect to the dashboard or any other page
-            } else {
-                // Error in login
+            localStorage.setItem('token', result.token);
+            window.location.href = '/dashboard';  // Redirect to the dashboard page
+        }
+
+        else {
+                // Display error message from server
                 document.getElementById('error').textContent = result.message;
             }
         }
     </script>
+    
 </body>
 </html>
