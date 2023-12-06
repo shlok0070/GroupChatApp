@@ -153,21 +153,34 @@ app.get('/dashboard', (req, res) => {
 
 // Add this route to your app.js
 // Add debug console.log
+// Add this route to your app.js
 app.get('/api/messages', authenticateToken, async (req, res) => {
-    try {
-        console.log('Request received at /api/messages'); // Add this line for debugging
-        // Query the database to retrieve chat messages for all users
-        const messages = await Message.findAll({
-            order: [['createdAt', 'ASC']], // Order messages by timestamp
-            include: User, // Include user information in the result
-        });
+    const lastTimestamp = req.query.after;
+    const limit = req.query.limit ? parseInt(req.query.limit) : null;
 
-        res.json(messages);
+    try {
+        let queryOptions = {
+            order: [['createdAt', 'DESC']], // Fetch latest messages first
+            include: User
+        };
+
+        if (lastTimestamp && !isNaN(new Date(lastTimestamp).getTime())) {
+            queryOptions.where = { createdAt: { [Sequelize.Op.gt]: new Date(lastTimestamp) } };
+        }
+
+        if (limit && !isNaN(limit)) {
+            queryOptions.limit = limit;
+        }
+
+        const messages = await Message.findAll(queryOptions);
+        res.json(messages.reverse()); // Reverse to maintain chronological order
     } catch (error) {
         console.error('Error retrieving messages:', error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
 });
+
+
 
 
 

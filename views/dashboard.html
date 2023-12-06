@@ -30,67 +30,85 @@
             window.location.href = '/login';
         } else {
             const socket = io({ query: { token: token } });
-
-            // Function to load chat messages from the API
-            // Function to load chat messages from the API
-                async function loadChatMessages() {
-                    try {
-                        const response = await fetch('/api/messages', {
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                            },
-                        });
-                        if (response.ok) {
-                            const messages = await response.json();
-                            const chatMessages = document.getElementById('chat-messages');
-                            messages.forEach((msg) => {
-                                const item = document.createElement('li');
-                                const userName = msg.User ? msg.User.name : 'Unknown User';
-
-                                // Create a <span> element to style the user's name and message separately
-                                const messageSpan = document.createElement('span');
-                                const userNameSpan = document.createElement('span');
-                                userNameSpan.textContent = userName + ': ';
-                                userNameSpan.style.fontWeight = 'bold'; // Set user name to bold
-                                messageSpan.textContent = msg.message;
-                                // messageSpan.style.fontFamily = 'Comic Sans MS'; // Set message font
-
-                                // Append both <span> elements to the <li>
-                                item.appendChild(userNameSpan);
-                                item.appendChild(messageSpan);
-
-                                chatMessages.appendChild(item);
-                            });
-                        } else {
-                            console.error('Error loading chat messages:', response.statusText);
-                        }
-                    } catch (error) {
-                        console.error('Error loading chat messages:', error);
-                    }
-                }
-
-
-            // Load chat messages when the page is loaded
-            window.addEventListener('load', () => {
-                loadChatMessages();
-            });
-
-            socket.on('chat message', function(data) {
-            const chatMessages = document.getElementById('chat-messages');
-            const item = document.createElement('li');
-            
-            // Check if the message is from the current user (You) and apply bold style accordingly
-            if (data.user === 'You') {
-                item.innerHTML = `<span style="font-weight: bold;">${data.user}:</span> ${data.text}`;
-            } else {
-                item.innerHTML = `<span style="font-weight: bold;">${data.user}:</span> ${data.text}`;
+    
+            // Function to display a chat message on the page
+            function displayChatMessage(user, text) {
+            if (!user || !text) {
+                console.error('Invalid message data:', user, text);
+                return; // Skip invalid message data
             }
 
+            const chatMessages = document.getElementById('chat-messages');
+            const item = document.createElement('li');
+            item.innerHTML = `<span style="font-weight: bold;">${user}:</span> ${text}`;
             chatMessages.appendChild(item);
-            window.scrollTo(0, document.body.scrollHeight);
-        });
+        }
+
+    
+            // Function to save chat messages to local storage
+            function saveMessagesToLocal(messages) {
+                    // Ensure that only the latest 10 messages are saved
+                    localStorage.setItem('chatMessages', JSON.stringify(messages.slice(-10)));
+                }
+
+    
+            // Function to load messages from local storage
+            function loadMessagesFromLocal() {
+                const messages = JSON.parse(localStorage.getItem('chatMessages'));
+                if (messages) {
+                    messages.forEach(({ user, text }) => displayChatMessage(user, text));
+                }
+            }
+    
+            // Function to load chat messages from the API
+            // Function to load chat messages from the API
+            async function loadChatMessages() {
+                try {
+                    const response = await fetch('/api/messages?limit=10', {
+                        headers: { 'Authorization': `Bearer ${token}` },
+                    });
+
+                    if (response.ok) {
+                        const messages = await response.json();
+                        const formattedMessages = messages.map(msg => ({
+                            user: msg.User ? msg.User.name : 'Unknown User', 
+                            text: msg.message
+                        }));
+                        formattedMessages.forEach(({ user, text }) => displayChatMessage(user, text));
+                        saveMessagesToLocal(formattedMessages); // Save formatted messages
+                    } else {
+                        console.error('Error loading chat messages:', response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error loading chat messages:', error);
+                }
+            }
 
 
+    
+            // Load chat messages from local storage when the page is loaded
+            // Load chat messages when the page is loaded
+            window.addEventListener('load', () => {
+                const localMessages = JSON.parse(localStorage.getItem('chatMessages'));
+                if (localMessages && localMessages.length > 0) {
+                    loadMessagesFromLocal();
+                } else {
+                    loadChatMessages();
+                }
+            });
+
+    
+            socket.on('chat message', function(data) {
+                displayChatMessage(data.user, data.text);
+                let allMessages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
+                allMessages.push({ user: data.user, text: data.text });
+                saveMessagesToLocal(allMessages);
+                window.scrollTo(0, document.body.scrollHeight);
+            });
+
+
+
+    
             socket.on('user list', function(users) {
                 const userList = document.getElementById('users');
                 userList.innerHTML = '';
@@ -100,7 +118,7 @@
                     userList.appendChild(item);
                 });
             });
-
+    
             document.getElementById('chatForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 const message = document.getElementById('message-input').value;
@@ -110,6 +128,6 @@
                 }
             });
         }
-    </script>
+    </script>    
 </body>
 </html>
